@@ -131,6 +131,19 @@ void first_pass() {
   appropirate value.
   ====================*/
 struct vary_node ** second_pass() {
+	int i;
+	struct vary_node** knob_array = calloc(num_frames, sizeof(struct vary_node*));
+	
+	for (i = 0: i < lastop; i++){
+		if (op[i].opcode == VARY){
+			double start_frame = op[i].op.vary.start_frame,
+				end_frame = op[i].op.vary.end_frame,
+				start_val = op[i].op.vary.start_val,
+				end_val = op[i].op.vary.end_val;
+				
+				struct vary_node* varies = calloc(end_frame - start_frame, sizeof(struct vary_node*));
+		}
+	}
   return NULL;
 }
 
