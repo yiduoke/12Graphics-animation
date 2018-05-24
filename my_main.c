@@ -147,6 +147,7 @@ struct vary_node ** second_pass() {
 						vary_node[j].value = symtab[j].value;
 						vary_node[j]->next = 
 					}
+					//https://github.com/yiduoke/06Sys/blob/master/linkedList.c
 				}
 		}
 	}
