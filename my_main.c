@@ -466,7 +466,8 @@ void my_main() {
 			}//end operation loop
 			
 			char pic_name[256];
-			sprintf (pic_name, "animations/%s%03d", name, num_frames);
+			sprintf (pic_name, "animations/%s%03d", name, current_frame);
+			printf("file name: %s\n", pic_name);
 			save_extension(t, pic_name);
 			systems = new_stack();
 			clear_screen(t);
