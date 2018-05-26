@@ -4,6 +4,7 @@ LDFLAGS= -lm
 CC= gcc
 
 all: parser
+	./mdl simple_anim.mdl
 
 parser: lex.yy.c y.tab.c y.tab.h $(OBJECTS)
 	gcc -o mdl $(CFLAGS) lex.yy.c y.tab.c $(OBJECTS) $(LDFLAGS)
