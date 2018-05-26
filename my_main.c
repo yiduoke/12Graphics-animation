@@ -470,7 +470,9 @@ void my_main() {
 			printf("file name: %s\n", pic_name);
 			save_extension(t, pic_name);
 			systems = new_stack();
+			tmp = new_matrix(4, 9999);
 			clear_screen(t);
+			clear_zbuffer(zb);
 		}
 	}	
 	
