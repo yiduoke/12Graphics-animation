@@ -277,8 +277,7 @@ void my_main() {
   		
   		  for (i=0;i<lastop;i++) {
 					//printf("%d: ",i);
-					switch (op[i].opcode){
-					
+					switch (op[i].opcode){				
 					/*
 						case SET:
 							set_value(lookup_symbol(op[i].op.set.p->name), op[i].op.set.p->s.value);
@@ -292,6 +291,7 @@ void my_main() {
 								}
 							}
 							break;
+						*/
 						case SPHERE:
 						  /* printf("Sphere: %6.2f %6.2f %6.2f r=%6.2f", */
 						  /* 	 op[i].op.sphere.d[0],op[i].op.sphere.d[1], */
