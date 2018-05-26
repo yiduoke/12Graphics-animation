@@ -270,7 +270,7 @@ void my_main() {
   
   if (num_frames > 1){
   	int current_frame;
-  	for (current_frame = 0; current_frame < num_frames; current_frame++){
+  	for (current_frame = 0; current_frame < num_frames; current_frame++)	{
   		printf("frame %d\n", current_frame);
   		struct vary_node * current_node = knobs[current_frame];
   		
@@ -412,6 +412,7 @@ void my_main() {
 				  	if (op[i].op.scale.p){
 				        printf("\tknob: %s",op[i].op.move.p->name);
 				        knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
+				     }
 				    xval = op[i].op.scale.d[0] * knob_value;
 				    yval = op[i].op.scale.d[1] * knob_value;
 				    zval = op[i].op.scale.d[2] * knob_value;
@@ -427,6 +428,7 @@ void my_main() {
 				  	if (op[i].op.rotate.p){
 				        printf("\tknob: %s",op[i].op.move.p->name);
 				        knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
+				    }
 				    xval = op[i].op.rotate.axis;
 				    theta = op[i].op.rotate.degrees * (M_PI / 180) * knob_value;
 				    printf("Rotate: axis: %6.2f degrees: %6.2f",
@@ -467,8 +469,6 @@ void my_main() {
 			save_extension(t, pic_name);
 			systems = new_stack();
 			clear_screen(t);
-  	}
-  }
-}
-}
+		}
+	}	
 }
