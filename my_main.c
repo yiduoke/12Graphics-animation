@@ -72,40 +72,27 @@ void first_pass() {
   extern int num_frames;
   extern char name[128];
   
-  int has_frames = 0;
- 	int has_vary = 0;
  	int has_name = 0;
 	
 	int i;
 	for (i = 0; i < lastop; i++){
 		switch(op[i].opcode){
 			case FRAMES:
-				if (has_frames){
-					printf("exiting program; multiple frames\n");
-					exit(0);
-				}
-				has_frames = 1;
 				num_frames = op[i].op.frames.num_frames;
 				break;
 			case BASENAME:
-				if (has_name){
-					printf("exiting program; multiple base names\n");
-					exit(0);
-				}
 				has_name = 1;
 				strcpy(name, op[i].op.basename.p->name);
 				break;
 			case VARY:
-				has_vary = 1;
+				if (!num_frames){
+					printf("has vary but no frames; bye\n");
+				}
 				break;
 		}
 	}
 	
-	if (has_vary && !has_frames){
-		printf("has vary but no frames\n");
-		exit(0);
-	}
-	if (has_frames && !has_name){
+	if (num_frames && !has_name){
 		strcpy(name, "tudous");
 		printf("no basename found, just used tudous\n");
 	}
@@ -131,9 +118,9 @@ void first_pass() {
   appropirate value.
   ====================*/
 struct vary_node ** second_pass() {
-	int i, j;
-	struct vary_node** knob_array = calloc(num_frames, sizeof(struct vary_node*));
-	
+	int i, current_frame;
+	struct vary_node** knob_array = calloc(num_frames, sizeof(struct vary_node));
+
 	for (i = 0; i < lastop; i++){
 		if (op[i].opcode == VARY){
 			double start_frame = op[i].op.vary.start_frame,
@@ -143,23 +130,22 @@ struct vary_node ** second_pass() {
       char *knob_name = op[i].op.vary.p->name;
         
       double delta = (end_val - start_val) / (end_frame - start_frame);
-				for (j = 0; j < end_frame - start_frame; j++){
-          struct vary_node * new_knob = malloc(sizeof(struct vary_node*));
-          strcpy(new_knob->name, knob_name);
-          new_knob->value = start_val + j * delta;
-          if (!knob_array[j]){
-            new_knob->next = NULL;
-          }
-          else{
-            new_knob->next = knob_array[j];
-          }
-          knob_array[j] = new_knob;
-					//https://github.com/yiduoke/06Sys/blob/master/linkedList.c
-				}
+      
+			for (current_frame = start_frame; current_frame < end_frame; current_frame++){
+				
+		    struct vary_node * new_knob = (struct vary_node*)malloc(sizeof(struct vary_node));
+				//struct vary_node * old_knob = knob_array[current_frame];
+		        
+		    strcpy(new_knob->name, knob_name);
+		    new_knob->value = start_val + (current_frame - start_frame) * delta;	      
+		    new_knob->next = knob_array[current_frame];
+		    knob_array[current_frame] = new_knob;
+			}
 		}
-	}
+	} 
   return knob_array;
 }
+
 
 /*======== void print_knobs() ==========
 Inputs:
@@ -266,6 +252,7 @@ void my_main() {
   clear_screen( t );
   clear_zbuffer(zb);
   
+  first_pass();
   struct vary_node** knobs = second_pass();
   
   if (num_frames > 1){
@@ -280,188 +267,187 @@ void my_main() {
   		}
   		
   		  for (i=0;i<lastop;i++) {
-				//printf("%d: ",i);
-				switch (op[i].opcode)
-				  {
-				  case SET:
-				  	set_value(lookup_symbol(op[i].op.set.p->name), op[i].op.set.val);
-				  	break;
-				  case SETKNOBS:
-				  	current_node = knobs[current_frame];
-				  	int current_symbol;
-				  	for (current_symbol = 0; current_symbol < lastsym; current_symbol++){
-				  		if (symtab[current_symbol].type == SYM_VALUE){
-				  			symtab[current_symbol].s.value = op[i].op.setknobs.value;
-				  		}
-				  	}
-				  case SPHERE:
-				    /* printf("Sphere: %6.2f %6.2f %6.2f r=%6.2f", */
-				    /* 	 op[i].op.sphere.d[0],op[i].op.sphere.d[1], */
-				    /* 	 op[i].op.sphere.d[2], */
-				    /* 	 op[i].op.sphere.r); */
-				    if (op[i].op.sphere.constants != NULL)
-				      {
-				        //printf("\tconstants: %s",op[i].op.sphere.constants->name);
-				      }
-				    if (op[i].op.sphere.cs != NULL)
-				      {
-				        //printf("\tcs: %s",op[i].op.sphere.cs->name);
-				      }
-				    add_sphere(tmp, op[i].op.sphere.d[0],
-				               op[i].op.sphere.d[1],
-				               op[i].op.sphere.d[2],
-				               op[i].op.sphere.r, step_3d);
-				    matrix_mult( peek(systems), tmp );
-				    draw_polygons(tmp, t, zb, view, light, ambient,
-				                  areflect, dreflect, sreflect);
-				    tmp->lastcol = 0;
-				    break;
-				  case TORUS:
-				    /* printf("Torus: %6.2f %6.2f %6.2f r0=%6.2f r1=%6.2f", */
-				    /* 	 op[i].op.torus.d[0],op[i].op.torus.d[1], */
-				    /* 	 op[i].op.torus.d[2], */
-				    /* 	 op[i].op.torus.r0,op[i].op.torus.r1); */
-				    if (op[i].op.torus.constants != NULL)
-				      {
-				        //printf("\tconstants: %s",op[i].op.torus.constants->name);
-				      }
-				    if (op[i].op.torus.cs != NULL)
-				      {
-				        //printf("\tcs: %s",op[i].op.torus.cs->name);
-				      }
-				    add_torus(tmp,
-				              op[i].op.torus.d[0],
-				              op[i].op.torus.d[1],
-				              op[i].op.torus.d[2],
-				              op[i].op.torus.r0,op[i].op.torus.r1, step_3d);
-				    matrix_mult( peek(systems), tmp );
-				    draw_polygons(tmp, t, zb, view, light, ambient,
-				                  areflect, dreflect, sreflect);
-				    tmp->lastcol = 0;
-				    break;
-				  case BOX:
-				    /* printf("Box: d0: %6.2f %6.2f %6.2f d1: %6.2f %6.2f %6.2f", */
-				    /* 	 op[i].op.box.d0[0],op[i].op.box.d0[1], */
-				    /* 	 op[i].op.box.d0[2], */
-				    /* 	 op[i].op.box.d1[0],op[i].op.box.d1[1], */
-				    /* 	 op[i].op.box.d1[2]); */
-				    if (op[i].op.box.constants != NULL)
-				      {
-				        //printf("\tconstants: %s",op[i].op.box.constants->name);
-				      }
-				    if (op[i].op.box.cs != NULL)
-				      {
-				        //printf("\tcs: %s",op[i].op.box.cs->name);
-				      }
-				    add_box(tmp,
-				            op[i].op.box.d0[0],op[i].op.box.d0[1],
-				            op[i].op.box.d0[2],
-				            op[i].op.box.d1[0],op[i].op.box.d1[1],
-				            op[i].op.box.d1[2]);
-				    matrix_mult( peek(systems), tmp );
-				    draw_polygons(tmp, t, zb, view, light, ambient,
-				                  areflect, dreflect, sreflect);
-				    tmp->lastcol = 0;
-				    break;
-				  case LINE:
-				    /* printf("Line: from: %6.2f %6.2f %6.2f to: %6.2f %6.2f %6.2f",*/
-				    /* 	 op[i].op.line.p0[0],op[i].op.line.p0[1], */
-				    /* 	 op[i].op.line.p0[1], */
-				    /* 	 op[i].op.line.p1[0],op[i].op.line.p1[1], */
-				    /* 	 op[i].op.line.p1[1]); */
-				    if (op[i].op.line.constants != NULL)
-				      {
-				        //printf("\n\tConstants: %s",op[i].op.line.constants->name);
-				      }
-				    if (op[i].op.line.cs0 != NULL)
-				      {
-				        //printf("\n\tCS0: %s",op[i].op.line.cs0->name);
-				      }
-				    if (op[i].op.line.cs1 != NULL)
-				      {
-				        //printf("\n\tCS1: %s",op[i].op.line.cs1->name);
-				      }
-				    add_edge(tmp,
-				             op[i].op.line.p0[0],op[i].op.line.p0[1],
-				             op[i].op.line.p0[2],
-				             op[i].op.line.p1[0],op[i].op.line.p1[1],
-				             op[i].op.line.p1[2]);
-				    matrix_mult( peek(systems), tmp );
-				    draw_lines(tmp, t, zb, g);
-				    tmp->lastcol = 0;
-				    break;
+					//printf("%d: ",i);
+					switch (op[i].opcode){
+						case SET:
+							set_value(lookup_symbol(op[i].op.set.p->name), op[i].op.set.p->s.value);
+							break;
+						case SETKNOBS:
+							current_node = knobs[current_frame];
+							int current_symbol;
+							for (current_symbol = 0; current_symbol < lastsym; current_symbol++){
+								if (symtab[current_symbol].type == SYM_VALUE){
+									symtab[current_symbol].s.value = op[i].op.setknobs.value;
+								}
+							}
+						case SPHERE:
+						  /* printf("Sphere: %6.2f %6.2f %6.2f r=%6.2f", */
+						  /* 	 op[i].op.sphere.d[0],op[i].op.sphere.d[1], */
+						  /* 	 op[i].op.sphere.d[2], */
+						  /* 	 op[i].op.sphere.r); */
+						  if (op[i].op.sphere.constants != NULL)
+						    {
+						      //printf("\tconstants: %s",op[i].op.sphere.constants->name);
+						    }
+						  if (op[i].op.sphere.cs != NULL)
+						    {
+						      //printf("\tcs: %s",op[i].op.sphere.cs->name);
+						    }
+						  add_sphere(tmp, op[i].op.sphere.d[0],
+						             op[i].op.sphere.d[1],
+						             op[i].op.sphere.d[2],
+						             op[i].op.sphere.r, step_3d);
+						  matrix_mult( peek(systems), tmp );
+						  draw_polygons(tmp, t, zb, view, light, ambient,
+						                areflect, dreflect, sreflect);
+						  tmp->lastcol = 0;
+						  break;
+						case TORUS:
+						  /* printf("Torus: %6.2f %6.2f %6.2f r0=%6.2f r1=%6.2f", */
+						  /* 	 op[i].op.torus.d[0],op[i].op.torus.d[1], */
+						  /* 	 op[i].op.torus.d[2], */
+						  /* 	 op[i].op.torus.r0,op[i].op.torus.r1); */
+						  if (op[i].op.torus.constants != NULL)
+						    {
+						      //printf("\tconstants: %s",op[i].op.torus.constants->name);
+						    }
+						  if (op[i].op.torus.cs != NULL)
+						    {
+						      //printf("\tcs: %s",op[i].op.torus.cs->name);
+						    }
+						  add_torus(tmp,
+						            op[i].op.torus.d[0],
+						            op[i].op.torus.d[1],
+						            op[i].op.torus.d[2],
+						            op[i].op.torus.r0,op[i].op.torus.r1, step_3d);
+						  matrix_mult( peek(systems), tmp );
+						  draw_polygons(tmp, t, zb, view, light, ambient,
+						                areflect, dreflect, sreflect);
+						  tmp->lastcol = 0;
+						  break;
+						case BOX:
+						  /* printf("Box: d0: %6.2f %6.2f %6.2f d1: %6.2f %6.2f %6.2f", */
+						  /* 	 op[i].op.box.d0[0],op[i].op.box.d0[1], */
+						  /* 	 op[i].op.box.d0[2], */
+						  /* 	 op[i].op.box.d1[0],op[i].op.box.d1[1], */
+						  /* 	 op[i].op.box.d1[2]); */
+						  if (op[i].op.box.constants != NULL)
+						    {
+						      //printf("\tconstants: %s",op[i].op.box.constants->name);
+						    }
+						  if (op[i].op.box.cs != NULL)
+						    {
+						      //printf("\tcs: %s",op[i].op.box.cs->name);
+						    }
+						  add_box(tmp,
+						          op[i].op.box.d0[0],op[i].op.box.d0[1],
+						          op[i].op.box.d0[2],
+						          op[i].op.box.d1[0],op[i].op.box.d1[1],
+						          op[i].op.box.d1[2]);
+						  matrix_mult( peek(systems), tmp );
+						  draw_polygons(tmp, t, zb, view, light, ambient,
+						                areflect, dreflect, sreflect);
+						  tmp->lastcol = 0;
+						  break;
+						case LINE:
+						  /* printf("Line: from: %6.2f %6.2f %6.2f to: %6.2f %6.2f %6.2f",*/
+						  /* 	 op[i].op.line.p0[0],op[i].op.line.p0[1], */
+						  /* 	 op[i].op.line.p0[1], */
+						  /* 	 op[i].op.line.p1[0],op[i].op.line.p1[1], */
+						  /* 	 op[i].op.line.p1[1]); */
+						  if (op[i].op.line.constants != NULL)
+						    {
+						      //printf("\n\tConstants: %s",op[i].op.line.constants->name);
+						    }
+						  if (op[i].op.line.cs0 != NULL)
+						    {
+						      //printf("\n\tCS0: %s",op[i].op.line.cs0->name);
+						    }
+						  if (op[i].op.line.cs1 != NULL)
+						    {
+						      //printf("\n\tCS1: %s",op[i].op.line.cs1->name);
+						    }
+						  add_edge(tmp,
+						           op[i].op.line.p0[0],op[i].op.line.p0[1],
+						           op[i].op.line.p0[2],
+						           op[i].op.line.p1[0],op[i].op.line.p1[1],
+						           op[i].op.line.p1[2]);
+						  matrix_mult( peek(systems), tmp );
+						  draw_lines(tmp, t, zb, g);
+						  tmp->lastcol = 0;
+						  break;
 
-				  case MOVE:
-				  	knob_value = 1;
-				  	if (op[i].op.move.p){
-				        printf("\tknob: %s",op[i].op.move.p->name);
-				        knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
-				    }
-				    xval = op[i].op.move.d[0] * knob_value;
-				    yval = op[i].op.move.d[1] * knob_value;
-				    zval = op[i].op.move.d[2] * knob_value;
-				    printf("Move: %6.2f %6.2f %6.2f",
-				           xval, yval, zval);
-				    tmp = make_translate( xval, yval, zval );
-				    matrix_mult(peek(systems), tmp);
-				    copy_matrix(tmp, peek(systems));
-				    tmp->lastcol = 0;
-				    break;
-				  case SCALE:
-				  	knob_value = 1;
-				  	if (op[i].op.scale.p){
-				        printf("\tknob: %s",op[i].op.move.p->name);
-				        knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
-				     }
-				    xval = op[i].op.scale.d[0] * knob_value;
-				    yval = op[i].op.scale.d[1] * knob_value;
-				    zval = op[i].op.scale.d[2] * knob_value;
-				    printf("Scale: %6.2f %6.2f %6.2f",
-				           xval, yval, zval);
-				    tmp = make_scale( xval, yval, zval );
-				    matrix_mult(peek(systems), tmp);
-				    copy_matrix(tmp, peek(systems));
-				    tmp->lastcol = 0;
-				    break;
-				  case ROTATE:
-				  	knob_value = 1;
-				  	if (op[i].op.rotate.p){
-				        printf("\tknob: %s",op[i].op.move.p->name);
-				        knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
-				    }
-				    xval = op[i].op.rotate.axis;
-				    theta = op[i].op.rotate.degrees * (M_PI / 180) * knob_value;
-				    printf("Rotate: axis: %6.2f degrees: %6.2f",
-				           xval, theta);
-				    if (op[i].op.rotate.axis == 0 )
-				      tmp = make_rotX( theta );
-				    else if (op[i].op.rotate.axis == 1 )
-				      tmp = make_rotY( theta );
-				    else
-				      tmp = make_rotZ( theta );
+						case MOVE:
+							knob_value = 1;
+							if (op[i].op.move.p && lookup_symbol(op[i].op.move.p->name)){
+						      printf("\tknob: %s",op[i].op.move.p->name);
+						      knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
+						  }
+						  xval = op[i].op.move.d[0] * knob_value;
+						  yval = op[i].op.move.d[1] * knob_value;
+						  zval = op[i].op.move.d[2] * knob_value;
+						  printf("Move: %6.2f %6.2f %6.2f",
+						         xval, yval, zval);
+						  tmp = make_translate( xval, yval, zval );
+						  matrix_mult(peek(systems), tmp);
+						  copy_matrix(tmp, peek(systems));
+						  tmp->lastcol = 0;
+						  break;
+						case SCALE:
+							knob_value = 1;
+							if (op[i].op.scale.p && lookup_symbol(op[i].op.move.p->name)){
+						      printf("\tknob: %s",op[i].op.move.p->name);
+						      knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
+						   }
+						  xval = op[i].op.scale.d[0] * knob_value;
+						  yval = op[i].op.scale.d[1] * knob_value;
+						  zval = op[i].op.scale.d[2] * knob_value;
+						  printf("Scale: %6.2f %6.2f %6.2f",
+						         xval, yval, zval);
+						  tmp = make_scale( xval, yval, zval );
+						  matrix_mult(peek(systems), tmp);
+						  copy_matrix(tmp, peek(systems));
+						  tmp->lastcol = 0;
+						  break;
+						case ROTATE:
+							knob_value = 1;
+							if (op[i].op.rotate.p && lookup_symbol(op[i].op.move.p->name)){
+						      printf("\tknob: %s",op[i].op.move.p->name);
+						      knob_value = lookup_symbol(op[i].op.move.p->name)->s.value;
+						  }
+						  xval = op[i].op.rotate.axis;
+						  theta = op[i].op.rotate.degrees * (M_PI / 180) * knob_value;
+						  printf("Rotate: axis: %6.2f degrees: %6.2f",
+						         xval, theta);
+						  if (op[i].op.rotate.axis == 0 )
+						    tmp = make_rotX( theta );
+						  else if (op[i].op.rotate.axis == 1 )
+						    tmp = make_rotY( theta );
+						  else
+						    tmp = make_rotZ( theta );
 
-				    matrix_mult(peek(systems), tmp);
-				    copy_matrix(tmp, peek(systems));
-				    tmp->lastcol = 0;
-				    break;
-				  case PUSH:
-				    //printf("Push");
-				    push(systems);
-				    break;
-				  case POP:
-				    //printf("Pop");
-				    pop(systems);
-				    break;
-				  case SAVE:
-				    //printf("Save: %s",op[i].op.save.p->name);
-				    save_extension(t, op[i].op.save.p->name);
-				    break;
-				  case DISPLAY:
-				    //printf("Display");
-				    display(t);
-				    break;
-				  } //end opcode switch
-				printf("\n");
+						  matrix_mult(peek(systems), tmp);
+						  copy_matrix(tmp, peek(systems));
+						  tmp->lastcol = 0;
+						  break;
+						case PUSH:
+						  //printf("Push");
+						  push(systems);
+						  break;
+						case POP:
+						  //printf("Pop");
+						  pop(systems);
+						  break;
+						case SAVE:
+						  //printf("Save: %s",op[i].op.save.p->name);
+						  save_extension(t, op[i].op.save.p->name);
+						  break;
+						case DISPLAY:
+						  //printf("Display");
+						  display(t);
+						  break;
+					} //end opcode switch
+					printf("\n");
 			}//end operation loop
 			
 			char pic_name[256];
@@ -471,4 +457,8 @@ void my_main() {
 			clear_screen(t);
 		}
 	}	
+	
+	else{ //one frame (picture)
+		printf("halp\n");
+	}
 }
