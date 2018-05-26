@@ -139,14 +139,21 @@ struct vary_node ** second_pass() {
 			double start_frame = op[i].op.vary.start_frame,
 				end_frame = op[i].op.vary.end_frame,
 				start_val = op[i].op.vary.start_val,
-				end_val = op[i].op.vary.end_val;
-				
+        end_val = op[i].op.vary.end_val;
+      char *knob_name = op[i].op.vary.p;
+        
+      double delta = (end_val - start_val) / (end_frame - start_frame);
 				for (j = 0; j < end_frame - start_frame; j++){
-					while (vary_node[j]->next){
-						vary_node[j].name = symtab[j].name;
-						vary_node[j].value = symtab[j].value;
-						vary_node[j]->next = 
-					}
+          struct vary_node * new_knob = malloc(sizeof(struct vary_node*));
+          strcpy(new_knob->name, knob_name);
+          new_knob->value = start_val + j * delta;
+          if (!knob_array[j]){
+            new_knob->next = NULL;
+          }
+          else{
+            new_knob->next = knob_array[j];
+          }
+          knob_array[j] = new_knob;
 					//https://github.com/yiduoke/06Sys/blob/master/linkedList.c
 				}
 		}
@@ -204,9 +211,7 @@ void print_knobs() {
   0487
   ====================*/
 void my_main() {
-
 	print_knobs();
-
   int i;
   struct matrix *tmp;
   struct stack *systems;
