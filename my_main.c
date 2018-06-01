@@ -467,7 +467,7 @@ void my_main() {
 			}//end operation loop
 			
 			char pic_name[256];
-			sprintf (pic_name, "animations/%s%03d", name, current_frame);
+			sprintf (pic_name, "anim/%s%03d.png", name, current_frame);
 			save_extension(t, pic_name);
 			systems = new_stack();
 			tmp = new_matrix(4, 9999);
@@ -475,18 +475,9 @@ void my_main() {
 			clear_zbuffer(zb);
 		}
 		
-		char command[256] = "convert -delay 10 animations/";
-		strcat(command, name);
-		strcat(command, "* ");
-		strcat(command, name);
-		strcat(command, ".gif");
-		
-		printf("%s\n",command);
-		system(command);
-		
+		make_animation(name);
 		char command2[256] = "animate ";
 		strcat(command2, name);
-		strcat(command2, ".gif");
 		system(command2);
 	}	
 	
